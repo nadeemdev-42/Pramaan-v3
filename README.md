@@ -105,16 +105,36 @@ To open the app from a phone on the same Wi-Fi, browse to `http://<your-computer
 Everything (API and web app) deploys to **Render** from the [`render.yaml`](render.yaml) blueprint in one go:
 
 1. Sign in at <https://render.com> with GitHub.
-2. **New -> Blueprint**, pick this repository, click **Apply**.
-3. Wait for both services to go live (the first build takes about 10 minutes), then open the `pramaan-web` URL and
-   sign in with **merchant@pramaan.local / shopkeeper123**.
+2. **New + -> Blueprint**, pick your repository (`Pramaan-v3`), and click **Apply**.
+3. Render creates both services:
+   - `pramaan-api` (Docker backend)
+   - `pramaan-web` (Next.js frontend)
+4. When both services go live, copy their public URLs (e.g. `https://pramaan-web-xxxx.onrender.com` and `https://pramaan-api-xxxx.onrender.com`).
+5. Open the `pramaan-web` URL and sign in with:
+   - **Email:** `merchant@pramaan.local`
+   - **Password:** `shopkeeper123`
 
-The blueprint generates `SECRET_KEY`, wires the two services to each other, and seeds the demo merchant.
+### Automatic Keep-Awake Cron Job (Prevent Free-Tier Sleep)
 
-Free-plan notes: services sleep after 15 minutes idle (the first request then takes about a minute), the disk is
-not persistent (the demo data is recreated on every start), and the free CPU is small, so one check can take
-much longer than on a laptop. For a live demo, open the site a few minutes early, or switch `pramaan-api` to the
-Starter plan in the Render dashboard.
+Render free-tier web services spin down and sleep after 15 minutes of inactivity. To keep your app awake 24/7 without delays:
+
+#### Method 1: Automatic GitHub Actions Cron (Recommended)
+This repository includes an automatic scheduled cron job in [`.github/workflows/keep-awake.yml`](.github/workflows/keep-awake.yml) that triggers every 10 minutes:
+1. Go to your GitHub repository -> **Settings** -> **Secrets and variables** -> **Actions** -> **Variables** tab.
+2. Add a new repository variable:
+   - Name: `RENDER_WEB_URL`
+   - Value: `https://your-pramaan-web-url.onrender.com`
+   - (Optional) Name: `RENDER_API_URL`
+   - Value: `https://your-pramaan-api-url.onrender.com`
+3. The workflow runs every 10 minutes on a cron schedule (`*/10 * * * *`) and pings the health endpoints so your service never sleeps.
+4. You can also trigger it manually anytime under the **Actions** tab -> **Keep Render Awake** -> **Run workflow**.
+
+#### Method 2: Free External Cron (cron-job.org or UptimeRobot)
+For 0-jitter, guaranteed 5-minute pings:
+1. Create a free account at [cron-job.org](https://cron-job.org) or [UptimeRobot](https://uptimerobot.com).
+2. Create a new monitor/cron job targeting:
+   - `https://your-pramaan-web.onrender.com/api/health`
+3. Set the interval to **every 5 or 10 minutes**. This keeps both web and backend active permanently at zero cost.
 
 ---
 
